@@ -78,7 +78,7 @@
         var collect = [];
 
         for( var i = 0, len = spec.length; i < len; i++ ){
-            var prop_name = props[i];
+            var prop_name = spec[i];
             var value = $(el).css(prop_name);
 
             if( value == '0px' ){
