@@ -6,6 +6,11 @@
  * SYNOPSIS:
  *    $('input#name').inlineCSS();
  *
+ *    To collect css, not inline it:
+ *
+ *    $('input#name').collectCSS();
+ *
+ *
  * Copyright (c) Matthijs van Henten (http://ischen.nl), 2011-2012.
  *
  * This program is free software; you can redistribute it and/or modify
@@ -31,91 +36,107 @@
     function getInlineBoxCSS( el ){
         var corners     = '%s-top %s-right %s-bottom %s-left';
         var properties  = ['padding','margin'];
-        var collect = [];
-
-        for( var i = 0, len = properties.length; i < len; i++ ){
-            var property = properties[i];
-            var spec    = corners.replace(/%s/g, property ).split(/\s/);
-
-            collect.push(getInlineCSSProperties( el, spec ));
-        }
 
         var spec = ['width','height','top','right', 'bottom',
-                    'left','float','display','position'];
+                    'left','float','display','position', 'z-index'];
 
-        collect.push(getInlineCSSProperties( el, spec ));
+        for( var i = 0, len = properties.length; i < len; i++ ){
+            $.merge( spec, corners.replace(/%s/g, properties[i] ).split(/\s/) );
+        }
 
-        return filterNonEmpty(collect).join(';');
+        return getInlineCSSProperties( el, spec );
     }
 
     function getInlineBordersCSS( el ){
-        var dirs    = 'top right bottom left'.split(/\s/);
-        var collect = [];
-        for( var i = 0, len = dirs.length; i < len; i++ ){
-            collect.push(getInlineBorderCSS(el, dirs[i]));
-        }
+        var sides   = 'top right bottom left'.split(/\s/);
 
-        return filterNonEmpty(collect).join(';');
+        var collect = {};
+
+        for( var i = 0, len = sides.length; i < len; i++ ){
+            var css = getInlineBorderCSS( el, sides[i] );
+
+            if( css !== false ){
+                $.extend( collect, css );
+            }
+        }
+        return collect;
     }
 
     function getInlineBorderCSS( el, dir ){
         var borders = 'border-%s-width border-%s-style border-%s-color';
-        var spec     = borders.replace(/%s/g, dir ).split(/\s/);
-        var collect  = [];
+        var key   = 'border-' + dir;
+        var spec  = borders.replace(/%s/g, dir ).split(/\s/);
+        var style = getInlineCSSProperties( el, spec );
+        var value = [];
 
-        for( var j = 0, len = spec.length; j < len; j++ ){
-            var value = $(el).css(spec[j]);
-            if( value == '0px' ){
-                return '';// no border, no cry
-            }
-            collect.push(value);
+        for( i in style ){
+            value.push( style[i]);
         }
 
-        return 'border-' + dir + ':' + collect.join(' ');
+        value = value.join( ' ' );
+
+        if( value.indexOf( 'none' ) == -1 ){
+            var collect = {};
+            collect[key] = value;
+
+            return collect;
+        }
+        return false;
     }
 
     function getInlineCSSProperties( el, spec ){
-        var collect = [];
+        var collect = {};
 
         for( var i = 0, len = spec.length; i < len; i++ ){
             var prop_name = spec[i];
-            var value = $(el).css(prop_name);
+            var value     = $(el).css(prop_name);
 
             if( value == '0px' ){
-                return '';
+                continue;
             }
 
-            collect.push( prop_name + ':' + value );
+            collect[prop_name] = value;
         }
 
-        return filterNonEmpty(collect).join(';');
+        return collect;
     }
 
-    function filterNonEmpty(arr){
-        return arr.filter(function(n){
-            if(n == '' || n == undefined ){
-                return false;
-            }
-            return true;
-        });
-    }
+    function getCSS( el ){
+        var css = {};
 
-    function getInlineCSS( el ){
-        var css = filterNonEmpty([
-            getInlineTextCSS(el),
-            getInlineBordersCSS(el),
-            getInlineBoxCSS(el)
-        ]).join(';');
-
-        css = (css !== '') ? css + ';' : '';
+        $.extend( css, getInlineTextCSS( el ) );
+        $.extend( css, getInlineBoxCSS( el ) );
+        $.extend( css, getInlineBordersCSS( el ) );
 
         return css;
     }
 
-	$.fn.inlineCSS = function() {
-		this.each(function() {
-            $(this).attr('style', getInlineCSS(this) );
-		});
-		return this;
-	};
+    function getCSSString( el ){
+        var css = getCSS( el );
+
+        var collect = [];
+
+        for( i in css ){
+            collect.push( i + ': ' + css[i] );
+        }
+
+        return collect.join( '; ' ) + ';';
+    }
+
+    $.fn.inlineCSS = function() {
+        this.each(function() {
+            $(this).attr('style', getCSSString(this) );
+        });
+        return this;
+    };
+
+    $.fn.collectCSS = function() {
+        var collect = [];
+
+        this.each(function() {
+            collect.push( { element: this, style: getCSS( this, false ) });
+        });
+
+        return collect;
+    };
 })(jQuery);
