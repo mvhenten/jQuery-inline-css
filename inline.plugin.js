@@ -84,6 +84,19 @@
         return false;
     }
 
+    function getInlineBackgroundCSS( el ){
+        var spec = [
+            'background-color',
+            'background-image',
+            'background-repeat',
+            'background-position',
+            'background-attachment'
+        ];
+
+        return getInlineCSSProperties( el, spec );
+    }
+
+
     function getInlineCSSProperties( el, spec ){
         var collect = {};
 
@@ -92,6 +105,9 @@
             var value     = $(el).css(prop_name);
 
             if( value == '0px' ){
+                continue;
+            }
+            if( value.indexOf('auto') != -1 ){
                 continue;
             }
 
@@ -107,6 +123,7 @@
         $.extend( css, getInlineTextCSS( el ) );
         $.extend( css, getInlineBoxCSS( el ) );
         $.extend( css, getInlineBordersCSS( el ) );
+        $.extend( css, getInlineBackgroundCSS( el ) );
 
         return css;
     }
