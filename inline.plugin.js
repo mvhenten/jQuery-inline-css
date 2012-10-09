@@ -107,6 +107,10 @@
             if( value == '0px' ){
                 continue;
             }
+            if ( typeof value == "number" ) {
+                collect[prop_name] = value;
+                continue;
+            }            
             if( value.indexOf('auto') != -1 ){
                 continue;
             }
